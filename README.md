@@ -178,9 +178,11 @@ in both directions, in the stack suite.
 - **Nothing here has been applied to a real AWS or GCP account.** The module and
   stack suites run against mocked providers, and the only real apply is the
   `local` example. The configuration is validated against the real provider
-  *schemas* (every module passes `terraform validate` with the actual AWS 6.x and
-  Google 6.x providers), but schema-valid is not the same as provisioned. Treat
-  this as verified configuration, not as a deployed estate.
+  *schemas* — every module passes `terraform validate` with the AWS provider
+  pinned to `~> 5.60` (resolving to **5.100.0**) and the Google provider to
+  `~> 6.0` (resolving to **6.50.0**), both pinned in the committed lock files —
+  but schema-valid is not the same as provisioned. Treat this as verified
+  configuration, not as a deployed estate.
 - **The AWS and GCP stacks are not equivalent in capability.** The AWS half covers
   network, compute, both data tiers and observability. The GCP half has no cache
   tier and no equivalent of the observability module — Cloud Monitoring alarms
