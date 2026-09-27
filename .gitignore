@@ -1,6 +1,8 @@
-# Terraform
+# Terraform working directory and local plugin cache
 .terraform/
-.terraform.lock.hcl
+.terraform-plugin-cache/
+
+# State — never commit; a real deployment uses a remote backend
 *.tfstate
 *.tfstate.*
 crash.log
@@ -14,3 +16,7 @@ examples/local/out/
 .vscode/
 *.swp
 .DS_Store
+
+# Note: .terraform.lock.hcl is intentionally NOT ignored. Committing it pins the
+# exact provider versions the suites were verified against, which is what makes
+# CI reproducible.

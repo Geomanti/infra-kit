@@ -1,3 +1,18 @@
+# Provider versions are pinned here as well as in the stacks.
+# Without this, running `terraform init` inside a module resolves the latest
+# major version, so a module tested standalone would exercise a different
+# provider than the stack that consumes it in production.
+terraform {
+  required_version = ">= 1.7.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.60"
+    }
+  }
+}
+
 # Container service: a Fargate service behind an ALB, with a task definition,
 # health-checked target group, log shipping and a rollout circuit breaker.
 #

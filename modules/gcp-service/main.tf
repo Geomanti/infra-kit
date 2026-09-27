@@ -1,3 +1,18 @@
+# Provider versions are pinned here as well as in the stacks.
+# Without this, running `terraform init` inside a module resolves the latest
+# major version, so a module tested standalone would exercise a different
+# provider than the stack that consumes it in production.
+terraform {
+  required_version = ">= 1.7.0"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 6.0"
+    }
+  }
+}
+
 # Cloud Run v2 service with a least-privilege runtime identity, autoscaling
 # bounds and a startup probe.
 #

@@ -20,6 +20,11 @@ command -v terraform >/dev/null 2>&1 || {
   exit 127
 }
 
+# Shared provider cache: eleven directories would otherwise download the same
+# providers in parallel and get throttled by the registry.
+export TF_PLUGIN_CACHE_DIR="${TF_PLUGIN_CACHE_DIR:-$ROOT/.terraform-plugin-cache}"
+mkdir -p "$TF_PLUGIN_CACHE_DIR"
+
 pass=0
 fail=0
 failed_suites=()
@@ -29,14 +34,20 @@ run_suite() {
   local label="${dir#"$ROOT"/}"
   printf '\n=== %s\n' "$label"
 
-  # init is quiet: the provider is already in the plugin cache in CI, and the
-  # first run's download noise buries the test output.
-  if ! (cd "$dir" && terraform init -backend=false -input=false -no-color >/dev/null 2>&1); then
-    printf 'INIT FAILED: %s\n' "$label"
-    fail=$((fail + 1))
-    failed_suites+=("$label (init)")
-    return
-  fi
+  local attempt
+  for attempt in 1 2 3; do
+    if (cd "$dir" && terraform init -backend=false -input=false -no-color >/tmp/tf-init.log 2>&1); then
+      break
+    fi
+    if [ "$attempt" -eq 3 ]; then
+      printf 'INIT FAILED: %s\n' "$label"
+      sed -n '1,40p' /tmp/tf-init.log
+      fail=$((fail + 1))
+      failed_suites+=("$label (init)")
+      return
+    fi
+    sleep 5
+  done
 
   if (cd "$dir" && terraform test -no-color); then
     pass=$((pass + 1))

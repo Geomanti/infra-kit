@@ -13,6 +13,11 @@ on:
 permissions:
   contents: read
 
+env:
+  # One provider download per run instead of one per matrix job. Without this the
+  # larger providers get resolved repeatedly and can be throttled.
+  TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.terraform-plugin-cache
+
 jobs:
   # Formatting and per-directory validation. Cheap and fast; runs first so a
   # malformed file fails the build before the test matrix spends time on it.
@@ -24,8 +29,16 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.9.8"
+          terraform_version: "1.16.4"
           terraform_wrapper: false
+
+      - name: Restore Terraform plugin cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.terraform-plugin-cache
+          key: tf-plugins-${{ runner.os }}-${{ hashFiles('**/.terraform.lock.hcl') }}
+          restore-keys: |
+            tf-plugins-${{ runner.os }}-
 
       - name: Terraform fmt
         run: terraform fmt -check -recursive -no-color
@@ -61,8 +74,16 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.9.8"
+          terraform_version: "1.16.4"
           terraform_wrapper: false
+
+      - name: Restore Terraform plugin cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.terraform-plugin-cache
+          key: tf-plugins-${{ runner.os }}-${{ hashFiles('**/.terraform.lock.hcl') }}
+          restore-keys: |
+            tf-plugins-${{ runner.os }}-
 
       - name: Init
         working-directory: ${{ matrix.component }}
