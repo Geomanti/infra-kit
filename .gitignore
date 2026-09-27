@@ -1,0 +1,16 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Example output
+examples/local/out/
+
+# Editor
+.idea/
+.vscode/
+*.swp
+.DS_Store

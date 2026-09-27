@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# The whole point of this pipeline: it needs no cloud credentials at all.
+#
+# Every suite runs against `mock_provider`, so there is nothing to authenticate
+# to and no risk of a test touching a real account. That is why this workflow can
+# run on a fork's pull request without secrets — and why it can gate merges.
+permissions:
+  contents: read
+
+jobs:
+  # Formatting and per-directory validation. Cheap and fast; runs first so a
+  # malformed file fails the build before the test matrix spends time on it.
+  validate:
+    name: fmt + validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+          terraform_wrapper: false
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive -no-color
+
+      - name: Validate every module and stack
+        run: ./scripts/validate.sh
+
+  # The test suites. A matrix so a failure names the component rather than
+  # "the repo is broken".
+  test:
+    name: test (${{ matrix.component }})
+    runs-on: ubuntu-latest
+    needs: validate
+
+    strategy:
+      fail-fast: false
+      matrix:
+        component:
+          - modules/naming
+          - modules/aws-network
+          - modules/aws-container-service
+          - modules/aws-postgres
+          - modules/aws-cache
+          - modules/aws-observability
+          - modules/gcp-network
+          - modules/gcp-service
+          - modules/gcp-postgres
+          - stacks/aws
+          - stacks/gcp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+          terraform_wrapper: false
+
+      - name: Init
+        working-directory: ${{ matrix.component }}
+        run: terraform init -backend=false -input=false -no-color
+
+      - name: Test
+        working-directory: ${{ matrix.component }}
+        run: terraform test -no-color
+
+  # A single required check, so branch protection only needs to watch one job.
+  ci-ok:
+    name: CI complete
+    runs-on: ubuntu-latest
+    needs: [validate, test]
+    if: always()
+    steps:
+      - name: Verify all upstream jobs succeeded
+        run: |
+          if [ "${{ needs.validate.result }}" != "success" ]; then
+            echo "validate failed"
+            exit 1
+          fi
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "test matrix failed"
+            exit 1
+          fi
+          echo "all jobs green"
